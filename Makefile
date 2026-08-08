@@ -1,25 +1,24 @@
-CXX := g++
-CXXFLAGS_BASE := -std=c++17 -pthread
-SRC := main.cpp
+CXX = g++
+CXXFLAGS_COMMON = -std=c++17 -Wall -Wextra -Iinclude -pthread
+DEBUG_FLAGS   = -g -O0 -fsanitize=address,undefined
+# DEBUG_FLAGS   = -g -O0 
+TSAN_FLAGS    = -g -O1 -fsanitize=thread
+RELEASE_FLAGS = -O3 -DNDEBUG
 
-TARGET_DEBUG := debug_build
-CXXFLAGS_DEBUG := $(CXXFLAGS_BASE) -g -O0 -Wall -Wextra -fsanitize=address,undefined
+.PHONY: all debug tsan release clean
 
-TARGET_RELEASE := release_build
-CXXFLAGS_RELEASE := $(CXXFLAGS_BASE) -O3 -DNDEBUG
+all: debug tsan release
 
-.PHONY: all debug release clean
+SRC = $(wildcard src/*.cpp)
 
-all: debug release
+debug:
+	$(CXX) $(CXXFLAGS_COMMON) $(DEBUG_FLAGS) test/fuzz_test.cpp $(SRC) -o build/fuzz_debug
 
-debug: $(TARGET_DEBUG)
-release: $(TARGET_RELEASE)
+tsan:
+	$(CXX) $(CXXFLAGS_COMMON) $(TSAN_FLAGS) test/spsc_test.cpp -o build/spsc_tsan
 
-$(TARGET_DEBUG): $(SRC)
-	$(CXX) $(CXXFLAGS_DEBUG) $< -o $@
-
-$(TARGET_RELEASE): $(SRC)
-	$(CXX) $(CXXFLAGS_RELEASE) $< -o $@
+release:
+	$(CXX) $(CXXFLAGS_COMMON) $(RELEASE_FLAGS) bench/latency_bench.cpp $(SRC) -o build/bench_release
 
 clean:
-	rm -f $(TARGET_DEBUG) $(TARGET_RELEASE)
+	rm -rf build/*
