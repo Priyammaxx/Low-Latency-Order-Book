@@ -1,3 +1,4 @@
+#include <cassert>
 #include <iostream>
 #include <random>
 
@@ -17,7 +18,7 @@ int main() {
     std::vector<int> buyOrders(maxPrice + 1, 0);
     std::vector<int> sellOrders(maxPrice + 1, 0);
 
-    int maxOrders = 20;
+    int maxOrders = 20000;
 
     for (int i = 0; i < maxOrders; i++) {
         int randomPrice = (int)distr(gen);
@@ -26,6 +27,11 @@ int main() {
         Order* order = createOrder(randomPrice, (bidAskValue % 50) + 1, is_buy);
         orderBook.addOrder(order);
 
+        Price bruteBid, bruteAsk;
+        orderBook.recomputeBestBidAskBruteForce(bruteBid, bruteAsk);
+        assert(bruteAsk == orderBook.bestAsk);
+        assert(bruteBid == orderBook.bestBid);
+
         if (is_buy)
             buyOrders[randomPrice]++;
         else
@@ -33,23 +39,9 @@ int main() {
     }
     // what happens if the resting order has been executed but cancel order is
     // called
-    // for (int i = 3; i < 7; i++) {
-    //     orderBook.cancelOrder(i);
-    // }
-
-    // std::cout << "Buy Order frequency:\n";
-    // for (int i = minPrice; i <= maxPrice; i++) {
-    //     std::cout << "(Price:" << i << ",frequency:" << buyOrders[i] << "),
-    //     ";
-    // }
-    // std::cout << "\n\n";
-    //
-    // std::cout << "Sell Order frequency at prices:\n";
-    // for (int i = minPrice; i <= maxPrice; i++) {
-    //     std::cout << "(Price:" << i << ",frequency: " << sellOrders[i] << "),
-    //     ";
-    // }
-    // std::cout << "\n\n";
+    for (int i = 3; i < 7; i++) {
+        std::cout << orderBook.cancelOrder(i) << '\n';
+    }
 
     const auto& trades = orderBook.getTrades();
 

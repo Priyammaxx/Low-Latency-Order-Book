@@ -51,4 +51,5 @@ class OrderBook {
     bool cancelOrder(OrderId id);
     void assertInvariants() const;
     const std::vector<Trade>& getTrades() const;
+    void recomputeBestBidAskBruteForce(Price& bb, Price& ba) const;
 };

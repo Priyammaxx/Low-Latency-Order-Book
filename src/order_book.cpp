@@ -109,7 +109,7 @@ void OrderBook::matchSell(Order* incoming) {
         else
             break;
     }
-    while (idx > 0 && levels_[idx].head == nullptr) idx--;
+    while (idx >= 0 && levels_[idx].head == nullptr) idx--;
     bestBid = (idx > 0) ? indexToPrice(idx) : minPrice;
 }
 
@@ -130,10 +130,11 @@ void OrderBook::removeFromBook(Order* order) {
 
 void OrderBook::addOrder(Order* order) {
     // Price-time-priority, FIFO
-    if (order->is_buy)
+    if (order->is_buy) {
         matchBuy(order);
-    else
+    } else {
         matchSell(order);
+    }
 
     if (order->qty > 0) {
         restOrder(order);
@@ -147,11 +148,21 @@ bool OrderBook::cancelOrder(OrderId id) {
     if (it == lookup_.end()) {
         return false;
     }
-
     Order* curOrder = it->second;
+    bool aloneInLevel = curOrder->prev == nullptr && curOrder->next == nullptr;
     removeFromBook(curOrder);
+    if (aloneInLevel) {
+        if (curOrder->price == bestBid) {
+            int idx = priceToIndex(bestBid);
+            while (idx >= 0 && levels_[idx].head == nullptr) idx--;
+            bestBid = (idx > 0) ? indexToPrice(idx) : minPrice;
+        } else if (curOrder->price == bestAsk) {
+            int idx = priceToIndex(bestAsk);
+            while (idx < maxTicks && levels_[idx].head == nullptr) idx++;
+            bestAsk = (idx < maxTicks) ? indexToPrice(idx) : maxPrice;
+        }
+    }
     delete curOrder;
-
     return true;
 }
 
@@ -165,4 +176,16 @@ std::string Trade::to_string() const {
            ", Incoming Order ID: " + std::to_string(aggressorOrderId) +
            "\nExecuted at Price: " + std::to_string(price) +
            ", Quantity: " + std::to_string(qty);
+}
+
+void OrderBook::recomputeBestBidAskBruteForce(Price& bb, Price& ba) const {
+    bb = minPrice;
+    ba = maxPrice;
+    for (int i = 0; i < maxTicks; i++) {
+        if (levels_[i].head == nullptr) continue;
+        if (levels_[i].head->is_buy)
+            bb = std::max(bb, indexToPrice(i));
+        else
+            ba = std::min(ba, indexToPrice(i));
+    }
 }
