@@ -1,15 +1,22 @@
 #include "order_book.hpp"
 
 #include <cmath>
+#include <string>
 
-OrderBook::OrderBook(std::string name, int minPrice, int maxPrice,
-                     float tickSize) {
+#include "order.hpp"
+
+// ----------------------------------------
+// --- Class functions ---
+
+OrderBook::OrderBook(std::string name, Price minPrice, Price maxPrice,
+                     int tickSize) {
     this->name = name;
     this->minPrice = minPrice;
     this->maxPrice = maxPrice;
     this->tickSize = tickSize;
-    this->maxTicks =
-        static_cast<int>(std::ceil((float)(maxPrice - minPrice) / tickSize));
+    this->maxTicks = (maxPrice - minPrice) / tickSize + 1;
+    this->bestAsk = maxPrice;
+    this->bestBid = minPrice;
     levels_.resize(this->maxTicks);
 }
 
@@ -20,33 +27,119 @@ OrderBook::~OrderBook() {
     lookup_.clear();
 }
 
-void OrderBook::addOrder(Order* order) {
-    Price price = order->price;
-    bool is_buy = order->is_buy;
-    int index =
-        static_cast<int>(std::ceil((float)(price - minPrice) / tickSize));
-    PriceLevel* priceLevel = &levels_[index];
+int OrderBook::priceToIndex(Price price) const {
+    return (price - minPrice) / tickSize;
+}
 
-    if (is_buy) {
-        if (priceLevel->bidCnt == 0) {
-            priceLevel->bidHead = priceLevel->bidTail = order;
-        } else {
-            priceLevel->bidTail->next = order;
-            order->prev = priceLevel->bidTail;
-            priceLevel->bidTail = order;
-        }
-        priceLevel->bidCnt++;
+Price OrderBook::indexToPrice(int index) const {
+    return minPrice + index * tickSize;
+}
+
+void OrderBook::restOrder(Order* order) {
+    int index = priceToIndex(order->price);
+    PriceLevel& level = levels_[index];
+
+    if (level.depth == 0) {
+        level.head = level.tail = order;
     } else {
-        if (priceLevel->askCnt == 0) {
-            priceLevel->askHead = priceLevel->askTail = order;
-        } else {
-            priceLevel->askTail->next = order;
-            order->prev = priceLevel->askTail;
-            priceLevel->askTail = order;
-        }
-        priceLevel->askCnt++;
+        level.tail->next = order;
+        order->prev = level.tail;
+        level.tail = order;
     }
+
+    if (order->is_buy) {
+        bestBid = std::max(bestBid, order->price);
+    } else {
+        bestAsk = std::min(bestAsk, order->price);
+    }
+
+    level.depth++;
+
     lookup_[order->id] = order;
+}
+
+void OrderBook::matchBuy(Order* incoming) {
+    int idx = priceToIndex(bestAsk);
+
+    while (idx < maxTicks && indexToPrice(idx) <= incoming->price &&
+           incoming->qty > 0) {
+        PriceLevel& level = levels_[idx];
+
+        while (level.head != nullptr && incoming->qty > 0) {
+            Order* resting = level.head;
+            Quantity tradeQty = std::min(incoming->qty, resting->qty);
+            trades_.push_back(
+                {resting->id, incoming->id, indexToPrice(idx), tradeQty});
+            incoming->qty -= tradeQty;
+            resting->qty -= tradeQty;
+            if (resting->qty == 0) {
+                removeFromBook(resting);
+                delete resting;
+            }
+        }
+        if (level.head == nullptr)
+            idx++;
+        else
+            break;
+    }
+    while (idx < maxTicks && levels_[idx].head == nullptr) idx++;
+    bestAsk = (idx < maxTicks) ? indexToPrice(idx) : maxPrice;
+}
+
+void OrderBook::matchSell(Order* incoming) {
+    int idx = priceToIndex(bestBid);
+    while (idx >= 0 && indexToPrice(idx) >= incoming->price &&
+           incoming->qty > 0) {
+        PriceLevel& level = levels_[idx];
+
+        while (level.head != nullptr && incoming->qty > 0) {
+            Order* resting = level.head;
+            Quantity tradeQty = std::min(incoming->qty, resting->qty);
+            trades_.push_back(
+                {resting->id, incoming->id, indexToPrice(idx), tradeQty});
+            incoming->qty -= tradeQty;
+            resting->qty -= tradeQty;
+            if (resting->qty == 0) {
+                removeFromBook(resting);
+                delete resting;
+            }
+        }
+        if (level.head == nullptr)
+            idx--;
+        else
+            break;
+    }
+    while (idx > 0 && levels_[idx].head == nullptr) idx--;
+    bestBid = (idx > 0) ? indexToPrice(idx) : minPrice;
+}
+
+void OrderBook::removeFromBook(Order* order) {
+    int idx = priceToIndex(order->price);
+    PriceLevel& level = levels_[idx];
+
+    if (order == level.head) level.head = order->next;
+    if (order == level.tail) level.tail = order->prev;
+    level.depth--;
+
+    if (order->prev) order->prev->next = order->next;
+    if (order->next) order->next->prev = order->prev;
+    order->prev = order->next = nullptr;
+
+    lookup_.erase(order->id);
+}
+
+void OrderBook::addOrder(Order* order) {
+    // Price-time-priority, FIFO
+    if (order->is_buy)
+        matchBuy(order);
+    else
+        matchSell(order);
+
+    if (order->qty > 0) {
+        restOrder(order);
+    } else {
+        delete order;
+    }
 }
 
 bool OrderBook::cancelOrder(OrderId id) {
@@ -56,37 +149,20 @@ bool OrderBook::cancelOrder(OrderId id) {
     }
 
     Order* curOrder = it->second;
-
-    int index = static_cast<int>(
-        std::ceil((float)(curOrder->price - minPrice) / tickSize));
-    PriceLevel* priceLevel = &levels_[index];
-
-    if (curOrder->is_buy) {
-        if (curOrder == priceLevel->bidHead)
-            priceLevel->bidHead = priceLevel->bidHead->next;
-        if (curOrder == priceLevel->bidTail)
-            priceLevel->bidTail = priceLevel->bidTail->prev;
-        priceLevel->bidCnt--;
-    } else {
-        if (curOrder == priceLevel->askHead)
-            priceLevel->askHead = priceLevel->askHead->next;
-        if (curOrder == priceLevel->askTail)
-            priceLevel->askTail = priceLevel->askTail->prev;
-        priceLevel->askCnt--;
-    }
-
-    if (curOrder->prev != nullptr) {
-        curOrder->prev->next = curOrder->next;
-    }
-    if (curOrder->next != nullptr) {
-        curOrder->next->prev = curOrder->prev;
-    }
-
-    curOrder->prev = nullptr;
-    curOrder->next = nullptr;
-
-    lookup_.erase(it);
+    removeFromBook(curOrder);
     delete curOrder;
 
     return true;
+}
+
+const std::vector<Trade>& OrderBook::getTrades() const { return trades_; }
+
+// ----------------------------------------
+// --- Utility and other functions ---
+
+std::string Trade::to_string() const {
+    return "Resting Order ID: " + std::to_string(restingOrderId) +
+           ", Incoming Order ID: " + std::to_string(aggressorOrderId) +
+           "\nExecuted at Price: " + std::to_string(price) +
+           ", Quantity: " + std::to_string(qty);
 }

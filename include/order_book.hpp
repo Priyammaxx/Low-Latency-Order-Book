@@ -6,36 +6,49 @@
 #include "order.hpp"
 
 struct PriceLevel {
-    Order* bidHead;
-    Order* bidTail;
-    Order* askHead;
-    Order* askTail;
-    uint32_t bidCnt;
-    uint32_t askCnt;
+    Order* head;
+    Order* tail;
+    uint32_t depth;
 
-    PriceLevel()
-        : bidHead(nullptr),
-          bidTail(nullptr),
-          askHead(nullptr),
-          askTail(nullptr),
-          bidCnt(0),
-          askCnt(0) {}
+    PriceLevel() : head(nullptr), tail(nullptr), depth(0) {}
+};
+
+struct Trade {
+    OrderId restingOrderId;
+    OrderId aggressorOrderId;
+    Price price;
+    Quantity qty;
+
+    std::string to_string() const;
 };
 
 class OrderBook {
    private:
     std::string name;
-    std::vector<PriceLevel> levels_;
+    // std::vector<PriceLevel> levels_;
     std::unordered_map<OrderId, Order*> lookup_;
-    int maxPrice;
-    int minPrice;
-    float tickSize;
+    std::vector<Trade> trades_;
+    Price maxPrice;
+    Price minPrice;
+    int tickSize;
     int maxTicks;
+    // Price bestAsk;
+    // Price bestBid;
+    void restOrder(Order* order);
+    void matchBuy(Order* incoming);
+    void matchSell(Order* incoming);
+    void removeFromBook(Order* order);
+    int priceToIndex(Price price) const;
+    Price indexToPrice(int index) const;
 
    public:
-    OrderBook(std::string name, int minPrice, int maxPrice, float tickSize);
+    std::vector<PriceLevel> levels_;
+    Price bestAsk;
+    Price bestBid;
+    OrderBook(std::string name, Price minPrice, Price maxPrice, int tickSize);
     ~OrderBook();
     void addOrder(Order* order);
     bool cancelOrder(OrderId id);
     void assertInvariants() const;
+    const std::vector<Trade>& getTrades() const;
 };
