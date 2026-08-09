@@ -1,5 +1,6 @@
 #include "order_book.hpp"
 
+#include <cassert>
 #include <cmath>
 #include <string>
 
@@ -187,5 +188,19 @@ void OrderBook::recomputeBestBidAskBruteForce(Price& bb, Price& ba) const {
             bb = std::max(bb, indexToPrice(i));
         else
             ba = std::min(ba, indexToPrice(i));
+    }
+}
+
+void OrderBook::assertInvariants() const {
+    for (const PriceLevel& level : levels_) {
+        if (level.depth == 0) {
+            assert(level.head == nullptr);
+            assert(level.tail == nullptr);
+        }
+        Order* order = level.head;
+        while (order != nullptr) {
+            assert(order->qty > 0);
+            order = order->next;
+        }
     }
 }

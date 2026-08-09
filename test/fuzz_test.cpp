@@ -18,7 +18,7 @@ int main() {
     std::vector<int> buyOrders(maxPrice + 1, 0);
     std::vector<int> sellOrders(maxPrice + 1, 0);
 
-    int maxOrders = 20000;
+    int maxOrders = 200000;
 
     for (int i = 0; i < maxOrders; i++) {
         int randomPrice = (int)distr(gen);
@@ -37,11 +37,13 @@ int main() {
         else
             sellOrders[randomPrice]++;
     }
+    orderBook.assertInvariants();
     // what happens if the resting order has been executed but cancel order is
     // called
     for (int i = 3; i < 7; i++) {
         std::cout << orderBook.cancelOrder(i) << '\n';
     }
+    orderBook.assertInvariants();
 
     const auto& trades = orderBook.getTrades();
 
