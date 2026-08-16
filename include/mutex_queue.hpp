@@ -7,7 +7,7 @@ template <typename T>
 class MutexQueue {
    private:
     std::mutex mutex_;
-    std::condition_variable notEmptpy_, notFull_;
+    std::condition_variable notEmpty_, notFull_;
     std::queue<T> queue_;
     size_t capacity_;
     bool done_ = false;
@@ -20,12 +20,12 @@ class MutexQueue {
         notFull_.wait(lock, [&] { return queue_.size() < capacity_ || done_; });
         queue_.push(std::move(item));
         lock.unlock();
-        notEmptpy_.notify_one();
+        notEmpty_.notify_one();
     }
 
     bool pop(T& out) {
         std::unique_lock<std::mutex> lock(mutex_);
-        notFull_.wait(lock, [&] { return !queue_.empty() || done_; });
+        notEmpty_.wait(lock, [&] { return !queue_.empty() || done_; });
         if (queue_.empty()) return false;
         out = std::move(queue_.front());
         queue_.pop();
@@ -39,7 +39,7 @@ class MutexQueue {
             std::lock_guard<std::mutex> lock(mutex_);
             done_ = true;
         }
-        notEmptpy_.notify_all();
+        notEmpty_.notify_all();
         notFull_.notify_all();
     }
 };

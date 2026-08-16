@@ -1,52 +1,73 @@
+#include <atomic>
 #include <cassert>
+#include <functional>
 #include <iostream>
 #include <random>
+#include <thread>
 
+#include "mutex_queue.hpp"
 #include "order.hpp"
 #include "order_book.hpp"
 
-int main() {
-    OrderBook orderBook("Apple", 0, 1000, 1);
+std::atomic<int> producedCount{0}, consumedCount{0};
 
+const int minPrice = 1;
+const int maxPrice = 40;
+
+void producerFn(MutexQueue<Order*>& q, int numOrders) {
     std::random_device rd;
     std::mt19937 gen(rd());
-    int minPrice = 1;
-    int maxPrice = 40;
     std::uniform_real_distribution<> distr(minPrice, maxPrice);
     std::uniform_real_distribution<> BidAsk(0, 1000);
 
-    std::vector<int> buyOrders(maxPrice + 1, 0);
-    std::vector<int> sellOrders(maxPrice + 1, 0);
-
-    int maxOrders = 200000;
-
-    for (int i = 0; i < maxOrders; i++) {
+    for (int i = 0; i < numOrders; i++) {
         int randomPrice = (int)distr(gen);
         int bidAskValue = (int)BidAsk(gen);
         bool is_buy = (bidAskValue & 1) == 1;
-        Order* order = createOrder(randomPrice, (bidAskValue % 50) + 1, is_buy);
-        orderBook.addOrder(order);
+        Order* o = createOrder(randomPrice, (bidAskValue % 50) + 1, is_buy);
+        o->id = i;  // here id is working as sequence number
+        q.push(o);
+        producedCount++;
+    }
+    q.shutdown();
+}
 
+void consumerFn(MutexQueue<Order*>& q, OrderBook& book) {
+    Order* o;
+    uint64_t expectedId = 0;
+    while (q.pop(o)) {
+        assert(o->id == expectedId++);
+        book.addOrder(o);
+        consumedCount++;
         Price bruteBid, bruteAsk;
-        orderBook.recomputeBestBidAskBruteForce(bruteBid, bruteAsk);
-        assert(bruteAsk == orderBook.bestAsk);
-        assert(bruteBid == orderBook.bestBid);
-
-        if (is_buy)
-            buyOrders[randomPrice]++;
-        else
-            sellOrders[randomPrice]++;
+        book.recomputeBestBidAskBruteForce(bruteBid, bruteAsk);
+        assert(bruteAsk == book.bestAsk);
+        assert(bruteBid == book.bestBid);
     }
-    orderBook.assertInvariants();
-    // what happens if the resting order has been executed but cancel order is
-    // called
-    for (int i = 3; i < 7; i++) {
-        std::cout << orderBook.cancelOrder(i) << '\n';
+}
+
+int main() {
+    const int numOrders = 200000;
+    const size_t queueCapacity = 1024;
+
+    MutexQueue<Order*> queue(queueCapacity);
+    OrderBook book("Apple", 0, 1000, 1);
+
+    std::thread producerThread(producerFn, std::ref(queue), numOrders);
+    std::thread consumerThread(consumerFn, std::ref(queue), std::ref(book));
+
+    producerThread.join();
+    consumerThread.join();
+
+    book.assertInvariants();
+
+    for (int i = 0; i < 1000; i++) {
+        if (book.cancelOrder(i))
+            std::cout << "OrderID " << i << " cancelled.\n";
     }
-    orderBook.assertInvariants();
+    book.assertInvariants();
 
-    const auto& trades = orderBook.getTrades();
-
+    const auto& trades = book.getTrades();
     for (const auto& trade : trades) {
         std::cout << trade.to_string() << '\n';
     }
@@ -54,12 +75,24 @@ int main() {
     std::cout << trades.size() << "\n\n";
 
     for (int i = minPrice; i <= maxPrice; i++) {
-        PriceLevel& level = orderBook.levels_[i];
+        PriceLevel& level = book.levels_[i];
         if (level.head == nullptr) continue;
         std::cout << "Buy Order? " << level.head->is_buy << ", Price: " << i
                   << ", OrderID: " << level.head->id << '\n';
     }
-    std::cout << "Best Bid: " << orderBook.bestBid
-              << ", Best Ask: " << orderBook.bestAsk << std::endl;
+    std::cout << "Best Bid: " << book.bestBid << ", Best Ask: " << book.bestAsk
+              << std::endl;
+
+    int finalProduced = producedCount.load();
+    int finalConsumed = consumedCount.load();
+
+    std::cout << "Produced: " << finalProduced << '\n';
+    std::cout << "Consumed: " << finalConsumed << '\n';
+
+    if (finalProduced == finalConsumed && finalProduced == numOrders) {
+        std::cout << "SUCCESS: Produced and consumed counts match exactly.\n";
+    } else {
+        std::cout << "Failure: Data race or dropped orders detected.\n";
+    }
     return 0;
 }
