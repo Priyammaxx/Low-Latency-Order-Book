@@ -15,9 +15,8 @@ A price-time-priority limit order book with a lock-free market data feed, built 
 
 ## Remaining work, in order
 
-- [ ] Lock-free SPSC ring buffer (fixed-capacity, atomic head/tail), correctness-first with `seq_cst`, verified single-threaded then multi-threaded under ThreadSanitizer.
-- [ ] Relax memory ordering to acquire/release; re-verify race-freedom and functional correctness are both unchanged.
-- [ ] Pin producer/consumer threads to separate CPU cores.
+- [x] Lock-free SPSC ring buffer
+- [ ] Pin producer/consumer threads to separate CPU cores in spsc_tsan test.
 - [ ] Allocate the ring buffer's backing storage via `mmap`, page-aligned.
 - [ ] Latency measurement harness (p50/p99/p999) comparing the mutex-based queue against the lock-free queue.
 - [ ] Profile with `perf`, identify false sharing between head/tail, fix via cache-line padding, capture before/after cache-miss numbers.
@@ -32,3 +31,9 @@ make tsan      # ThreadSanitizer build, for concurrency testing
 make release   # optimized build, for benchmarking
 ```
 
+## Debug
+If `.build/spsc_tsan` throws ThreadSanitizer error then try this
+```bash
+sudo sysctl vm.mmap_rnd_bits=28
+```
+**Claude's Explanation for this error**: Recent Linux kernels default to more randomization bits than TSan's older shadow-memory layout expects, so the OS occasionally hands your binary an address range TSan didn't reserve space for, and it aborts rather than silently corrupting its own bookkeeping. Common on newer Ubuntu kernels, WSL2, and some containers.

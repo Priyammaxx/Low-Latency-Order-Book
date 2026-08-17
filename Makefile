@@ -15,7 +15,7 @@ debug:
 	$(CXX) $(CXXFLAGS_COMMON) $(DEBUG_FLAGS) test/fuzz_test.cpp $(SRC) -o build/fuzz_debug
 
 tsan:
-	$(CXX) $(CXXFLAGS_COMMON) $(TSAN_FLAGS) test/spsc_test.cpp -o build/spsc_tsan
+	$(CXX) $(CXXFLAGS_COMMON) $(TSAN_FLAGS) test/spsc_test.cpp $(SRC) -o build/spsc_tsan
 
 release:
 	$(CXX) $(CXXFLAGS_COMMON) $(RELEASE_FLAGS) bench/latency_bench.cpp $(SRC) -o build/bench_release
