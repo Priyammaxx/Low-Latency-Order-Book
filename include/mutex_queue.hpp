@@ -15,12 +15,14 @@ class MutexQueue {
    public:
     explicit MutexQueue(size_t capacity) : capacity_(capacity) {}
 
-    void push(T item) {
+    // made a bool to ensure compatibility in templates created for testing
+    bool push(T item) {
         std::unique_lock<std::mutex> lock(mutex_);
         notFull_.wait(lock, [&] { return queue_.size() < capacity_ || done_; });
         queue_.push(std::move(item));
         lock.unlock();
         notEmpty_.notify_one();
+        return true;
     }
 
     bool pop(T& out) {
@@ -42,4 +44,6 @@ class MutexQueue {
         notEmpty_.notify_all();
         notFull_.notify_all();
     }
+
+    bool isDone() const { return done_; }
 };

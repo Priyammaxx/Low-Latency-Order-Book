@@ -16,7 +16,7 @@ A price-time-priority limit order book with a lock-free market data feed, built 
 ## Remaining work, in order
 
 - [x] Lock-free SPSC ring buffer
-- [ ] Pin producer/consumer threads to separate CPU cores in spsc_tsan test.
+- [x] Pin producer/consumer threads to separate CPU cores in test.
 - [ ] Allocate the ring buffer's backing storage via `mmap`, page-aligned.
 - [ ] Latency measurement harness (p50/p99/p999) comparing the mutex-based queue against the lock-free queue.
 - [ ] Profile with `perf`, identify false sharing between head/tail, fix via cache-line padding, capture before/after cache-miss numbers.
@@ -30,6 +30,14 @@ make debug     # ASan/UBSan build, for correctness testing
 make tsan      # ThreadSanitizer build, for concurrency testing
 make release   # optimized build, for benchmarking
 ```
+
+## Testing
+
+```bash
+perf stat -e cache-misses,cache-references ./build/bench_release (-mq | -rb) {cpu1} {cpu2}
+```
+- -mq for using Mutex Queue
+- -rb for using Ring Buffer
 
 ## Debug
 If `.build/spsc_tsan` throws ThreadSanitizer error then try this

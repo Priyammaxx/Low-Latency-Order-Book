@@ -11,6 +11,7 @@
 template <typename T>
 class RingBuffer {
    private:
+   public:
     std::vector<T> data_{};
     alignas(64) std::atomic<size_t> readIdx_{0};
     alignas(64) size_t writeIdxCached_{0};
@@ -18,7 +19,7 @@ class RingBuffer {
     alignas(64) size_t readIdxCached_{0};
     std::atomic<bool> done_{false};
 
-   public:
+    // public:
     explicit RingBuffer(size_t capacity) : data_(capacity) {}
 
     bool push(T item) {
