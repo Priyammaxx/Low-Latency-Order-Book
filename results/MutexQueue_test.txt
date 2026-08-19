@@ -1,0 +1,68 @@
+
+--- using Mutex Queue ---
+2997494 ops/s
+# started on Wed Aug 19 14:05:55 2026
+
+
+ Performance counter stats for './build/bench_release -mq 0 1':
+
+   <not supported>      cache-misses:u                                                        
+   <not supported>      cache-references:u                                                    
+
+      36.342262247 seconds time elapsed
+
+      40.714317000 seconds user
+      16.594113000 seconds sys
+
+
+
+--- using Mutex Queue ---
+2771782 ops/s
+# started on Wed Aug 19 14:06:53 2026
+
+
+ Performance counter stats for './build/bench_release -mq 0 1':
+
+   <not supported>      cache-misses:u                                                        
+   <not supported>      cache-references:u                                                    
+
+      39.639549548 seconds time elapsed
+
+      44.151337000 seconds user
+      18.470198000 seconds sys
+
+
+
+--- using Mutex Queue ---
+2935740 ops/s
+# started on Wed Aug 19 14:09:53 2026
+
+
+ Performance counter stats for './build/bench_release -mq 0 1':
+
+   <not supported>      cache-misses:u                                                        
+   <not supported>      cache-references:u                                                    
+
+      37.408093837 seconds time elapsed
+
+      41.552502000 seconds user
+      17.463101000 seconds sys
+
+
+
+--- using Mutex Queue ---
+2956246 ops/s
+# started on Wed Aug 19 14:10:58 2026
+
+
+ Performance counter stats for './build/bench_release -mq 0 1':
+
+   <not supported>      cache-misses:u                                                        
+   <not supported>      cache-references:u                                                    
+
+      37.013041835 seconds time elapsed
+
+      41.004803000 seconds user
+      16.820518000 seconds sys
+
+

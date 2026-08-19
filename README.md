@@ -18,7 +18,7 @@ A price-time-priority limit order book with a lock-free market data feed, built 
 - [x] Lock-free SPSC ring buffer
 - [x] Pin producer/consumer threads to separate CPU cores in test.
 - [ ] Allocate the ring buffer's backing storage via `mmap`, page-aligned.
-- [ ] Latency measurement harness (p50/p99/p999) comparing the mutex-based queue against the lock-free queue.
+- [x] Latency measurement harness (p50/p99/p999) comparing the mutex-based queue against the lock-free queue.
 - [ ] Profile with `perf`, identify false sharing between head/tail, fix via cache-line padding, capture before/after cache-miss numbers.
 - [ ] Check syscall count on the hot path with `strace`.
 - [ ] Final benchmark results, concepts-demonstrated table, and build/run instructions.

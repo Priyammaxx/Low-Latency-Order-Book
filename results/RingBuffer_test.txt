@@ -1,0 +1,69 @@
+
+--- using Ring Buffer ---
+5945833 ops/s
+# started on Wed Aug 19 14:01:17 2026
+
+
+ Performance counter stats for './build/bench_release -rb 0 1':
+
+   <not supported>      cache-misses:u                                                        
+   <not supported>      cache-references:u                                                    
+
+      19.870492375 seconds time elapsed
+
+      33.534008000 seconds user
+       3.111073000 seconds sys
+
+
+
+--- using Ring Buffer ---
+5443804 ops/s
+# started on Wed Aug 19 14:01:52 2026
+
+
+ Performance counter stats for './build/bench_release -rb 0 1':
+
+   <not supported>      cache-misses:u                                                        
+   <not supported>      cache-references:u                                                    
+
+      22.131117580 seconds time elapsed
+
+      36.446220000 seconds user
+       3.958503000 seconds sys
+
+
+
+
+--- using Ring Buffer ---
+5820040 ops/s
+# started on Wed Aug 19 14:02:47 2026
+
+
+ Performance counter stats for './build/bench_release -rb 0 1':
+
+   <not supported>      cache-misses:u                                                        
+   <not supported>      cache-references:u                                                    
+
+      20.322286157 seconds time elapsed
+
+      34.380621000 seconds user
+       3.075339000 seconds sys
+
+
+
+--- using Ring Buffer ---
+5919064 ops/s
+# started on Wed Aug 19 14:04:04 2026
+
+
+ Performance counter stats for './build/bench_release -rb 0 1':
+
+   <not supported>      cache-misses:u                                                        
+   <not supported>      cache-references:u                                                    
+
+      20.072915999 seconds time elapsed
+
+      33.973288000 seconds user
+       2.947070000 seconds sys
+
+
