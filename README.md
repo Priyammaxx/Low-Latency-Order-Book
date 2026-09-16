@@ -28,16 +28,20 @@ A price-time-priority limit order book with a lock-free market data feed, built 
 ```bash
 make debug     # ASan/UBSan build, for correctness testing
 make tsan      # ThreadSanitizer build, for concurrency testing
-make release   # optimized build, for benchmarking
+make release   # optimized build, for latency benchmarking
+make perf   # optimized build, for performance comparison benchmark
 ```
 
 ## Testing
 
 ```bash
-perf stat -e cache-misses,cache-references ./build/bench_release (-mq | -rb) {cpu1} {cpu2}
+perf stat -e cache-misses,cache-references ./build/perf_bench (-mq | -rb) {cpu1} {cpu2}
 ```
 - -mq for using Mutex Queue
 - -rb for using Ring Buffer
+
+## Result
+In folder results, for latency test you can see that p99 queue latency for ring buffer is less than mutex queue.
 
 ## Debug
 If `.build/spsc_tsan` throws ThreadSanitizer error then try this

@@ -1,0 +1,18 @@
+
+--- using Ring Buffer ---
+3600725 ops/s
+| Metric | Service Latency (ns) |
+|---|---|
+| p50  | 131 |
+| p99  | 780 |
+| p999 | 2144 |
+
+Number of times Service Latency greater than 100000 ns: 1109
+
+| Metric | Queue Latency (micro s) |
+|---|---|
+| p50  | 15536 |
+| p99  | 26021 |
+| p999 | 0 |
+
+Number of times Queue Latency greater than 100000 micro s: 458752

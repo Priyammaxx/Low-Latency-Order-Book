@@ -1,0 +1,18 @@
+
+--- using Mutex Queue ---
+2572392 ops/s
+| Metric | Service Latency (ns) |
+|---|---|
+| p50  | 128 |
+| p99  | 758 |
+| p999 | 2110 |
+
+Number of times Service Latency greater than 100000 ns: 608
+
+| Metric | Queue Latency (micro s) |
+|---|---|
+| p50  | 23125 |
+| p99  | 36993 |
+| p999 | 0 |
+
+Number of times Queue Latency greater than 100000 micro s: 489726

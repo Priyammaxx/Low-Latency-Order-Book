@@ -4,7 +4,7 @@
 # started on Wed Aug 19 14:01:17 2026
 
 
- Performance counter stats for './build/bench_release -rb 0 1':
+ Performance counter stats for './build/perf_bench -rb 0 1':
 
    <not supported>      cache-misses:u                                                        
    <not supported>      cache-references:u                                                    
@@ -21,7 +21,7 @@
 # started on Wed Aug 19 14:01:52 2026
 
 
- Performance counter stats for './build/bench_release -rb 0 1':
+ Performance counter stats for './build/perf_bench -rb 0 1':
 
    <not supported>      cache-misses:u                                                        
    <not supported>      cache-references:u                                                    
@@ -39,7 +39,7 @@
 # started on Wed Aug 19 14:02:47 2026
 
 
- Performance counter stats for './build/bench_release -rb 0 1':
+ Performance counter stats for './build/perf_bench -rb 0 1':
 
    <not supported>      cache-misses:u                                                        
    <not supported>      cache-references:u                                                    
@@ -56,7 +56,7 @@
 # started on Wed Aug 19 14:04:04 2026
 
 
- Performance counter stats for './build/bench_release -rb 0 1':
+ Performance counter stats for './build/perf_bench -rb 0 1':
 
    <not supported>      cache-misses:u                                                        
    <not supported>      cache-references:u                                                    

@@ -2,7 +2,7 @@ CXX = g++
 CXXFLAGS_COMMON = -std=c++17 -Wall -Wextra -Iinclude -pthread
 DEBUG_FLAGS   = -g -O0 -fsanitize=address,undefined
 TSAN_FLAGS    = -g -O1 -fsanitize=thread
-RELEASE_FLAGS = -O3 -DNDEBUG
+BENCH_FLAGS = -O3 -DNDEBUG
 
 .PHONY: all debug tsan release clean
 
@@ -18,9 +18,13 @@ tsan:
 	mkdir -p build
 	$(CXX) $(CXXFLAGS_COMMON) $(TSAN_FLAGS) test/spsc_test.cpp $(SRC) -o build/spsc_tsan
 
-release:
+latency:
 	mkdir -p build
-	$(CXX) $(CXXFLAGS_COMMON) $(RELEASE_FLAGS) bench/latency_bench.cpp $(SRC) -o build/bench_release
+	$(CXX) $(CXXFLAGS_COMMON) $(BENCH_FLAGS) bench/latency_bench.cpp $(SRC) -o build/latency_bench
+
+perf:
+	mkdir -p build
+	$(CXX) $(CXXFLAGS_COMMON) $(BENCH_FLAGS) bench/perf_bench.cpp $(SRC) -o build/perf_bench
 
 clean:
 	rm -rf build/*

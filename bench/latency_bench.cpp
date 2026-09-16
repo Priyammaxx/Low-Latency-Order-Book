@@ -15,6 +15,12 @@
 #include "spsc_queue.hpp"
 
 const int numCores = sysconf(_SC_NPROCESSORS_ONLN);
+// track latency latencies from 0 ns to 100,000 ns
+std::vector<uint64_t> serviceLatencyHist(100001, 0);
+int serviceLatencyOutlierCnt = 0;
+// measured in microseconds
+std::vector<uint64_t> queueLatencyHist(100001, 0);
+int queueLatencyOutlierCnt = 0;
 
 void pinThread(int cpu) {
     if (cpu < 0 || cpu > numCores) {
@@ -33,10 +39,10 @@ void pinThread(int cpu) {
 const int minPrice = 0;
 const int maxPrice = 1000;
 
+const int64_t iters = 100000000;  // 100 Million
 template <template <typename> class Container>
 void bench(int cpu1, int cpu2, OrderBook& book) {
-    const size_t queueSize = 65536;   // 2^16
-    const int64_t iters = 100000000;  // 100 Million
+    const size_t queueSize = 65536;  // 2^16
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> distr(minPrice, maxPrice);
@@ -54,7 +60,25 @@ void bench(int cpu1, int cpu2, OrderBook& book) {
                     continue;
                 }
             }
+            uint64_t dequeue_ns = nowNs();
+            uint64_t dequeue_ms = nowMs();
+            uint64_t enqueue_ms = order->timestamp;
+
             book.addOrder(order);
+            uint64_t end_ns = nowNs();
+
+            uint64_t queueLatency = dequeue_ms - enqueue_ms;
+            uint64_t serviceLatency = end_ns - dequeue_ns;
+            if (serviceLatency < serviceLatencyHist.size()) {
+                serviceLatencyHist[serviceLatency]++;
+            } else {
+                serviceLatencyOutlierCnt++;
+            }
+            if (queueLatency < queueLatencyHist.size()) {
+                queueLatencyHist[queueLatency]++;
+            } else {
+                queueLatencyOutlierCnt++;
+            }
         }
     });
 
@@ -74,11 +98,8 @@ void bench(int cpu1, int cpu2, OrderBook& book) {
     }
     q.shutdown();
     t.join();
-    // while (producedCount.load(std::memory_order_relaxed) !=
-    //        consumedCount.load(std::memory_order_relaxed)) {
-    // }
+
     auto stop = std::chrono::steady_clock::now();
-    // t.join();
     std::cout << iters * 1000000000 /
                      std::chrono::duration_cast<std::chrono::nanoseconds>(stop -
                                                                           start)
@@ -103,13 +124,70 @@ int main(int argc, char* argv[]) {
             bench<RingBuffer>(cpu1, cpu2, std::ref(book));
         } else {
             std::cout << "Invalid usage of arguments!\n";
-            std::cout << "Usage: " << argv[0] << "(-mq | -rb) cpu1 cpu2\n";
+            std::cout << "Usage: " << argv[0] << " (-mq | -rb) cpu1 cpu2\n";
             return EXIT_FAILURE;
         }
     } else {
         std::cout << "Usage: " << argv[0] << "(-mq | -rb) cpu1 cpu2\n";
         return EXIT_FAILURE;
     }
+    uint64_t p50{};
+    uint64_t p99{};
+    uint64_t p999{};
+    uint64_t p50Num = iters * 0.50;
+    uint64_t p99Num = iters * 0.99;
+    uint64_t p999Num = iters * 0.999;
+    uint64_t orderCount = 0;
 
+    for (uint64_t i = 0; i < serviceLatencyHist.size(); i++) {
+        if (p50Num >= orderCount &&
+            p50Num <= (orderCount + serviceLatencyHist[i])) {
+            p50 = i;
+        }
+        if (p99Num >= orderCount &&
+            p99Num <= (orderCount + serviceLatencyHist[i])) {
+            p99 = i;
+        }
+        if (p999Num >= orderCount &&
+            p999Num <= (orderCount + serviceLatencyHist[i])) {
+            p999 = i;
+        }
+        orderCount += serviceLatencyHist[i];
+    }
+
+    std::cout << "| Metric | Service Latency (ns) |\n";
+    std::cout << "|---|---|\n";
+    std::cout << "| p50  | " << p50 << " |\n";
+    std::cout << "| p99  | " << p99 << " |\n";
+    std::cout << "| p999 | " << p999 << " |\n";
+
+    std::cout << "\nNumber of times Service Latency greater than 100000 ns: "
+              << serviceLatencyOutlierCnt << '\n';
+
+    p999 = p99 = p50 = orderCount = 0;
+    for (uint64_t i = 0; i < queueLatencyHist.size(); i++) {
+        if (p50Num >= orderCount &&
+            p50Num <= (orderCount + queueLatencyHist[i])) {
+            p50 = i;
+        }
+        if (p99Num >= orderCount &&
+            p99Num <= (orderCount + queueLatencyHist[i])) {
+            p99 = i;
+        }
+        if (p999Num >= orderCount &&
+            p999Num <= (orderCount + queueLatencyHist[i])) {
+            p999 = i;
+        }
+        orderCount += queueLatencyHist[i];
+    }
+
+    std::cout << "\n| Metric | Queue Latency (micro s) |\n";
+    std::cout << "|---|---|\n";
+    std::cout << "| p50  | " << p50 << " |\n";
+    std::cout << "| p99  | " << p99 << " |\n";
+    std::cout << "| p999 | " << p999 << " |\n";
+
+    std::cout << "\nNumber of times Queue Latency greater than 100000 micro s: "
+              << queueLatencyOutlierCnt << '\n';
     return 0;
 }
