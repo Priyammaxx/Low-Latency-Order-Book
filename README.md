@@ -40,6 +40,8 @@ perf stat -e cache-misses,cache-references ./build/perf_bench (-mq | -rb) {cpu1}
 - -mq for using Mutex Queue
 - -rb for using Ring Buffer
 
+> **NOTE:** best-bid/ask correction is a linear scan across price levels. A production system would maintain a bitmap or skip-list of populated levels to make this O(1) amortized 
+
 ## Result
 In folder results, for latency test you can see that p99 queue latency for ring buffer is less than mutex queue.
 

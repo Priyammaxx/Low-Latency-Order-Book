@@ -160,6 +160,9 @@ int main(int argc, char* argv[]) {
     std::cout << "| p50  | " << p50 << " |\n";
     std::cout << "| p99  | " << p99 << " |\n";
     std::cout << "| p999 | " << p999 << " |\n";
+    if (orderCount < p999Num) {
+        std::cout << "p999 exceeds tracked histogram range\n";
+    }
 
     std::cout << "\nNumber of times Service Latency greater than 100000 ns: "
               << serviceLatencyOutlierCnt << '\n';
@@ -186,6 +189,9 @@ int main(int argc, char* argv[]) {
     std::cout << "| p50  | " << p50 << " |\n";
     std::cout << "| p99  | " << p99 << " |\n";
     std::cout << "| p999 | " << p999 << " |\n";
+    if (orderCount < p999Num) {
+        std::cout << "p999 exceeds tracked histogram range\n";
+    }
 
     std::cout << "\nNumber of times Queue Latency greater than 100000 micro s: "
               << queueLatencyOutlierCnt << '\n';
